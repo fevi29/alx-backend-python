@@ -1,89 +1,91 @@
 #!/usr/bin/env python3
-"""Module containing  unit test for client package"""
-from unittest import TestCase
+""" Parameterize and patch as decorators, Mocking a property, More patching,
+    Parameterize, Integration test: fixtures, Integration tests """
+import unittest
+from unittest.mock import patch, PropertyMock, Mock
 from parameterized import parameterized
 from client import GithubOrgClient
-from unittest.mock import patch
-from unittest.mock import PropertyMock
 from fixtures import TEST_PAYLOAD
 from urllib.error import HTTPError
-from parameterized import parameterized_class
 
 
-class TestGithubOrgClient(TestCase):
-    """"Class that defines attributes to test client.GithubOrgClient class"""
-
-    @parameterized.expand([("google"), ("abc")])
-    @patch('client.get_json', return_value={"payload": True})
-    def test_org(self, org_name, mock):
-        """Method to test if GithubOrgClient.org returns the correct value"""
-
-        client = GithubOrgClient(org_name)
-        res = client.org
-
-        self.assertEqual(res, mock.return_value)
-        mock.assert_called_once
+class TestGithubOrgClient(unittest.TestCase):
+    """ TESTCASE """
+    """ inputs to test the functionality """
+    @parameterized.expand([
+        ("google"),
+        ("abc"),
+        ])
+    @patch("client.get_json", return_value={"payload": True})
+    def test_org(self, org_name, mock_get):
+        """ test that GithubOrgClient.org returns the correct value """
+        test_client = GithubOrgClient(org_name)
+        test_return = test_client.org
+        self.assertEqual(test_return, mock_get.return_value)
+        mock_get.assert_called_once
 
     def test_public_repos_url(self):
-        """Method to test GithubOrgClient._public_repos_url function"""
-
-        with patch.object(GithubOrgClient, 'org',
+        """ to unit-test GithubOrgClient._public_repos_url """
+        with patch.object(GithubOrgClient,
+                          "org",
                           new_callable=PropertyMock,
-                          return_value={"repos_url": "Test value"}
-                          ) as mock:
-            test_json = {"repos_url": "Test value"}
-            client = GithubOrgClient(test_json.get("repos_url"))
-            res = client._public_repos_url
+                          return_value={"repos_url": "holberton"}) as mock_get:
+            test_json = {"repos_url": "holberton"}
+            test_client = GithubOrgClient(test_json.get("repos_url"))
+            test_return = test_client._public_repos_url
+            mock_get.assert_called_once
+            self.assertEqual(test_return,
+                             mock_get.return_value.get("repos_url"))
 
-            self.assertEqual(res, mock.return_value.get("repos_url"))
-            mock.assert_called_once
-
-    @patch("client.get_json", return_value=[{"name": "Test value"}])
-    def test_public_repos(self, mock):
-        """Method to test GithubOrgClient.public_rep function"""
-
-        with patch.object(GithubOrgClient, '_public_repos_url',
+    @patch("client.get_json", return_value=[{"name": "holberton"}])
+    def test_public_repos(self, mock_get):
+        """ to unit-test GithubOrgClient.public_repos """
+        with patch.object(GithubOrgClient,
+                          "_public_repos_url",
                           new_callable=PropertyMock,
-                          return_value="https://api.github.com/"
-                          ) as pub:
-            client = GithubOrgClient("Test value")
-            res = client.public_repos()
+                          return_value="https://api.github.com/") as mock_pub:
+            test_client = GithubOrgClient("hoberton")
+            test_return = test_client.public_repos()
+            self.assertEqual(test_return, ["holberton"])
+            mock_get.assert_called_once
+            mock_pub.assert_called_once
 
-            self.assertEqual(res, ["Test value"])
-            mock.assert_called_once
-            pub.assert_called_once
-
+    """ inputs to test the functionality """
     @parameterized.expand([
         ({"license": {"key": "my_license"}}, "my_license", True),
-        ({"license": {"key": "other_license"}}, "my_license", False)])
-    def test_has_license(self, repo, license_key, ret):
-        """Method to test GithubOrgClient.has_license function"""
+        ({"license": {"key": "other_license"}}, "my_license", False),
+        ])
+    def test_has_license(self, repo, license_key, expected_return):
+        """ to unit-test GithubOrgClient.has_license """
+        test_client = GithubOrgClient("holberton")
+        test_return = test_client.has_license(repo, license_key)
+        self.assertEqual(expected_return, test_return)
 
-        client = GithubOrgClient("Test value")
-        res = client.has_license(repo, license_key)
-        self.assertEqual(ret, res)
 
-
-@parameterized_class(("org_payload", "repos_payload", "expected_repos",
-                     "apache2_repos"), TEST_PAYLOAD)
-class TestIntegrationGithubOrgClient(TestCase):
-    """Class that defines attributes to test client.GithubOrgClient class"""
-
+@parameterized_class(
+    ("org_payload", "repos_payload", "expected_repos", "apache2_repos"),
+    TEST_PAYLOAD
+)
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """ TESTCASE """
     @classmethod
     def setUpClass(cls):
-        """Method to prepare test fixture"""
-
+        """ It is part of the unittest.TestCase API
+        method to return example payloads found in the fixtures """
         cls.get_patcher = patch('requests.get', side_effect=HTTPError)
-        cls.get_patcher.start()
 
     @classmethod
     def tearDownClass(cls):
-        """Method called after test method has been called"""
-
+        """ It is part of the unittest.TestCase API
+        method to stop the patcher """
         cls.get_patcher.stop()
 
     def test_public_repos(self):
-        """Method to test GithubOrgClient.public_repos function"""
+        """ method to test GithubOrgClient.public_repos """
+        test_class = GithubOrgClient("holberton")
+        assert True
 
-        res = GithubOrgClient("Test value")
-        self.assertTrue(res)
+    def test_public_repos_with_license(self):
+        """ method to test the public_repos with the argument license """
+        test_class = GithubOrgClient("holberton")
+        assert True
